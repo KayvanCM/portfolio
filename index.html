@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kayvan CM — Design portfolio</title>
+<meta name="description" content="Design portfolio of Kayvan CM. Software, apps, and products." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght,SOFT@9..144,300..600,50..100&family=Instrument+Serif:ital@0;1&display=swap" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png" />
+<link rel="apple-touch-icon" href="assets/favicon-192.png" />
+<script defer src="assets/thinking-orbs.js"></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="hero-avatar" src="assets/kayvan.jpg" alt="Kayvan CM" />
+    <h1>
+      Hello, I&rsquo;m Kayvan.<br />
+      I design <span class="rot" id="rot">software</span>
+    </h1>
+    <p class="sub">
+      I build tools that empower humans. Currently designing AI experiences at <strong>Apple</strong>. Curiosity is my superpower.
+    </p>
+    <nav class="tab-nav" role="tablist" aria-label="Sections">
+      <button class="tab-link active" role="tab" data-tab="work" aria-selected="true">Work</button>
+      <!-- <button class="tab-link" role="tab" data-tab="play" aria-selected="false">Play</button> -->
+      <button class="tab-link" role="tab" data-tab="about" aria-selected="false">About</button>
+      <button class="tab-link" role="tab" data-tab="contact" aria-selected="false">Contact</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="tab-panel active log-section" id="log" data-panel="work" role="tabpanel">
+    <div class="log-scroll">
+      <div class="log-track">
+
+        <article class="log-entry" data-color="blue"
+                 style="--preview: url('assets/apple-macbook.jpg');"
+                 data-modal-title="Apple"
+                 data-modal-image="assets/apple-scm-walkthrough.mp4,assets/apple-agent-overview.png,assets/apple-agent-builder.png,assets/apple-voice-transcript.png,assets/apple-agent-comparison.png,assets/apple-agent-metrics.png,assets/applebiz-maps-ads.png,assets/apple-supply-network.png,assets/apple-vendor-detail.png,assets/apple-bom-detail.png"
+                 data-modal-captions="Supply chain walkthrough|Fleet overview with live conversation activity and top-line metrics|Agent builder with natural-language scaffolding and pre-built templates|Voice agent transcript with playback and moment-level actions|Agentic AI performance summary|Agent evaluation dashboard for sentiment and issue tags|Ads on Maps composer with targeting radius and promoted card preview|Global supply network with in-transit shipments to Cupertino|Vendor overview with recent activity, open POs, and account team|BOM structure with component drawer showing sourcing and compliance"
+                 data-modal-body="Product designer at Apple working across AI and developer tools. My work has reached beyond a single team, touching multiple products across Apple and standardizing how internal teams use AI chat.">
+          <div class="log-entry-body">
+            <div class="log-entry-head">
+              <div class="log-project">Apple</div>
+            </div>
+            <p class="log-desc">AI-native designer, creating experiences for internal teams to better serve you.</p>
+          </div>
+          <button class="log-stack" aria-label="Open Apple preview">
+            <div class="log-mockup log-mockup--image" aria-hidden="true"></div>
+          </button>
+        </article>
+
+        <article class="log-entry" data-color="rust"
+                 style="--preview: url('assets/blueprint-car.jpg');"
+                 data-modal-title="Tesla"
+                 data-modal-image="assets/tesla-station-operator.png,assets/tesla-parts-catalog.png,assets/tesla-part-detail.png,assets/tesla-market-drawer.png"
+                data-modal-captions="Factory station, operator view for the production line|Parts catalog browsed by vehicle program|Part dossier with engineering drawing and regulatory compliance|Market filing drawer, approval status by region"
+                 data-modal-body="Product designer at Tesla working on internal tools for supply chain, manufacturing, and engineering, plus the consumer-facing parts catalog. I designed for operators on the production line, buyers coordinating with suppliers, engineers running compliance and homologation across global markets, and owners browsing replacement parts for their vehicle.">
+          <div class="log-entry-body">
+            <div class="log-entry-head">
+              <div class="log-project">Tesla</div>
+            </div>
+            <p class="log-desc">Manufacturing and supply chain software.</p>
+          </div>
+          <button class="log-stack" aria-label="Open Tesla preview">
+            <div class="log-mockup log-mockup--image" aria-hidden="true"></div>
+          </button>
+        </article>
+
+        <article class="log-entry" data-color="teal"
+                 style="--preview: url('assets/arsenalbio.png'); --preview-fit: contain; --preview-bg: #ffffff;"
+                 data-modal-title="ArsenalBio"
+                 data-modal-image="assets/arsenalbio-workflow.png,assets/arsenalbio-schedule.png,assets/arsenalbio-sop.png"
+                 data-modal-captions="Autologous cell therapy workflow, from patient apheresis to infusion|Manufacturing schedule with gated checklists from patient consent to infusion|GMP document retention with e-sign approvals and revision history"
+                 data-modal-body="Product designer at Arsenal Biosciences, a clinical-stage cell therapy company. Designed the manufacturing platform operators use to plan cell therapy runs across suites and equipment, with each run threading its own gated checklist from patient consent to infusion.">
+          <div class="log-entry-body">
+            <div class="log-entry-head">
+              <div class="log-project">ArsenalBio</div>
+            </div>
+            <p class="log-desc">Manufacturing platform for a clinical-stage cell therapy company. Plans runs across suites and equipment with a gated checklist per run.</p>
+          </div>
+          <button class="log-stack" aria-label="Open ArsenalBio preview">
+            <div class="log-mockup log-mockup--image" aria-hidden="true"></div>
+          </button>
+        </article>
+
+        <article class="log-entry" data-color="paper"
+                 style="--preview: url('assets/ascii-hands.jpg');"
+                 data-modal-title="Side Projects"
+                 data-modal-image="assets/notch-buddy.mov,shader:thinking-orbs-pills,assets/sideproj-kiln.png,assets/sideproj-kiln-recipe.png,assets/sideproj-rasterkit.png"
+                 data-modal-captions="Notch Buddy, a pixel Apple that lives in the MacBook notch and reacts to Claude Code activity|Thinking orbs, a set of loading indicators built with WebGL fragment shaders|Semiconductor fab control plane with wafer defect maps and lot travelers|Recipe flow diagram with live lot positions and holds|RasterKit, a text-pattern studio that turns repeated glyphs into density-mapped art"
+                 data-modal-body="Small experiments outside company work. Notch Buddy is a tiny macOS app that puts a pixel Apple in the MacBook notch. It wakes up, walks, and waves as Claude Code runs tools, adding a bit of ambient status to something that's usually silent."
+                 data-modal-link="https://github.com/KayvanCM/notchbuddy"
+                 data-modal-link-label="View Notch Buddy on GitHub">
+          <div class="log-entry-body">
+            <div class="log-entry-head">
+              <div class="log-project">Side Projects</div>
+            </div>
+            <p class="log-desc">Small experiments and one-off tools outside the main company work.</p>
+          </div>
+          <button class="log-stack" aria-label="Open Side Projects preview">
+            <div class="log-mockup log-mockup--image" aria-hidden="true"></div>
+          </button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="play" role="tabpanel" hidden>
+    <div class="wrap tab-panel-body">
+      <p class="about-intro">Small interactive experiments. Some real-time graphics, some prototypes I built to figure something out.</p>
+      <div class="play-embed-wrap">
+        <h3 class="play-embed-title">Sumi Ink</h3>
+        <p class="play-embed-desc">Japanese suminagashi in the browser. Ink floats on water and reacts to touch. Drop and drag to disturb the surface.</p>
+        <div class="play-embed-stage">
+          <iframe class="play-embed-frame" data-src="play/sumi-ink/demo.html" title="Sumi Ink live" allow="fullscreen" loading="lazy"></iframe>
+        </div>
+        <a class="play-embed-full" href="play/sumi-ink/demo.html" target="_blank" rel="noopener">Open full screen ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="about" role="tabpanel" hidden>
+    <div class="wrap tab-panel-body">
+      <p class="about-intro">I'm a product designer at Apple. Previously, I spent time at Tesla and various biotech companies. I focus on making the complex feel simple.</p>
+      <p class="about-intro">I care deeply about craft, exploration, and prototyping. In my experience, the end product turns out stronger when those live inside the design phase, not after.</p>
+      <p class="about-intro">When I'm not tinkering with technology, you'll find me tending to my bonsai and garden.</p>
+      <h2 class="about-heading">Accomplishments</h2>
+      <ol class="about-timeline">
+        <li class="about-timeline-item">
+          <span class="about-timeline-dot" aria-hidden="true"></span>
+          <p>Direct role in securing FDA approval for the world's largest biotech manufacturing facility (Genentech, Vacaville, CA).</p>
+        </li>
+        <li class="about-timeline-item">
+          <span class="about-timeline-dot" aria-hidden="true"></span>
+          <p>Helped bring the Tesla Model 3 through global vehicle type approval.</p>
+        </li>
+        <li class="about-timeline-item">
+          <span class="about-timeline-dot" aria-hidden="true"></span>
+          <p>Built software that connects cancer patients with the latest CAR-T therapies.</p>
+        </li>
+        <li class="about-timeline-item">
+          <span class="about-timeline-dot" aria-hidden="true"></span>
+          <p>Led design on agentic AI that changed how AppleCare listens, responds, and resolves for customers.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="contact" role="tabpanel" hidden>
+    <div class="wrap tab-panel-body">
+      <p class="contact-line">The best way to reach me is <a href="mailto:kayvancm@gmail.com">kayvancm@gmail.com</a>.</p>
+      <p class="contact-line">You can also find me on <a href="https://www.linkedin.com/in/kayvanmesbah/" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</p>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel">
+    <button class="modal-close" data-close aria-label="Close">&times;</button>
+    <div class="modal-media">
+      <img id="modal-image" src="" alt="" />
+    </div>
+    <div class="modal-body">
+      <h3 class="modal-title" id="modal-title"></h3>
+      <p class="modal-desc" id="modal-desc"></p>
+      <div class="modal-link-wrap" id="modal-link-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Rotating word with typewriter feel: hold, delete char-by-char, type next.
+  (() => {
+    const el = document.getElementById('rot');
+    const words = ['software.', 'apps.', 'products.'];
+    const TYPE_MS = 90;    // per character while typing
+    const DELETE_MS = 55;  // per character while deleting
+    const HOLD_MS = 1600;  // pause after a word is fully typed
+    const GAP_MS = 260;    // pause after a word is fully deleted
+
+    let wordIdx = 0;
+    let charCount = words[0].length;
+    let phase = 'holding';
+
+    el.textContent = words[0];
+
+    function tick() {
+      if (phase === 'holding') {
+        phase = 'deleting';
+        return setTimeout(tick, HOLD_MS);
+      }
+      if (phase === 'deleting') {
+        charCount--;
+        el.textContent = words[wordIdx].slice(0, charCount);
+        if (charCount === 0) {
+          phase = 'gap';
+          wordIdx = (wordIdx + 1) % words.length;
+          return setTimeout(tick, GAP_MS);
+        }
+        return setTimeout(tick, DELETE_MS);
+      }
+      if (phase === 'gap') {
+        phase = 'typing';
+        return setTimeout(tick, 0);
+      }
+      if (phase === 'typing') {
+        charCount++;
+        el.textContent = words[wordIdx].slice(0, charCount);
+        if (charCount === words[wordIdx].length) {
+          phase = 'holding';
+          return setTimeout(tick, 0);
+        }
+        return setTimeout(tick, TYPE_MS);
+      }
+    }
+    setTimeout(tick, HOLD_MS);
+  })();
+
+  // Log preview modal: click a stack, open a modal with that project's image + copy.
+  (() => {
+    const modal = document.getElementById('modal');
+    if (!modal) return;
+    const img = document.getElementById('modal-image');
+    const titleEl = document.getElementById('modal-title');
+    const descEl = document.getElementById('modal-desc');
+    const linkWrap = document.getElementById('modal-link-wrap');
+    const mediaEl = img.parentElement;
+    const panelEl = modal.querySelector('.modal-panel');
+    let lastFocus = null;
+
+    function open(entry) {
+      const raw = entry.dataset.modalImage || '';
+      const urls = raw.split(',').map(s => s.trim()).filter(Boolean);
+      const captions = (entry.dataset.modalCaptions || '').split('|').map(s => s.trim());
+      const alt = entry.dataset.modalTitle || '';
+      // Clear the media container and rebuild
+      mediaEl.innerHTML = '';
+      urls.forEach((u, i) => {
+        const figure = document.createElement('figure');
+        figure.className = 'modal-figure';
+        const isVideo  = /\.(mp4|mov|webm)(\?.*)?$/i.test(u);
+        const isShader = /^shader:/i.test(u);
+        const isIframe = /^iframe:/i.test(u);
+        let el;
+        if (isShader) {
+          // Custom interactive shader mount. The mount function receives a
+          // wrapper div and creates whatever DOM it needs inside — a single
+          // canvas, a grid of canvases, HTML, whatever.
+          el = document.createElement('div');
+          el.className = 'modal-shader-mount';
+          figure.classList.add('modal-figure--shader');
+          const name = u.replace(/^shader:/i, '');
+          const mountFn = window['mount' + name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('')];
+          // Defer mount until the wrapper is in the DOM so children can measure.
+          requestAnimationFrame(() => { if (typeof mountFn === 'function') mountFn(el); });
+        } else if (isIframe) {
+          // Live self-contained prototype embedded at gallery scale instead
+          // of full viewport.
+          el = document.createElement('iframe');
+          el.src = u.replace(/^iframe:/i, '');
+          el.loading = 'lazy';
+          el.title = alt;
+          el.setAttribute('allow', 'fullscreen');
+          figure.classList.add('modal-figure--iframe');
+        } else if (isVideo) {
+          el = document.createElement('video');
+          el.src = u;
+          el.autoplay = true;
+          el.loop = true;
+          el.muted = true;
+          el.playsInline = true;
+          el.setAttribute('playsinline', '');
+        } else {
+          el = document.createElement('img');
+          el.src = u;
+          el.alt = alt;
+        }
+        figure.appendChild(el);
+        if (captions[i]) {
+          const cap = document.createElement('figcaption');
+          cap.textContent = captions[i];
+          figure.appendChild(cap);
+        }
+        mediaEl.appendChild(figure);
+      });
+      titleEl.textContent = alt;
+      descEl.textContent = entry.dataset.modalBody || '';
+      linkWrap.innerHTML = '';
+      const linkUrl = entry.dataset.modalLink;
+      if (linkUrl) {
+        const a = document.createElement('a');
+        a.href = linkUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'modal-link';
+        a.textContent = entry.dataset.modalLinkLabel || 'View on GitHub';
+        linkWrap.appendChild(a);
+      }
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (panelEl) {
+        panelEl.scrollTop = 0;
+        requestAnimationFrame(() => updateHasMore());
+      }
+      lastFocus = document.activeElement;
+      // Don't autofocus the close button — that triggers the focus ring on open.
+      // Keyboard users can still Tab to it or press Esc to dismiss.
+    }
+    function close() {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+      // Drop any live iframe/shader mounts so a WebGL context doesn't keep
+      // rendering after the modal is closed.
+      mediaEl.innerHTML = '';
+    }
+
+    function updateHasMore() {
+      if (!panelEl) return;
+      const nearBottom = panelEl.scrollHeight - panelEl.clientHeight - panelEl.scrollTop < 24;
+      const overflows = panelEl.scrollHeight > panelEl.clientHeight + 4;
+      panelEl.classList.toggle('has-more', overflows && !nearBottom);
+    }
+    if (panelEl) {
+      panelEl.addEventListener('scroll', updateHasMore, { passive: true });
+      window.addEventListener('resize', updateHasMore);
+    }
+
+    document.querySelectorAll('.log-stack, .log-entry-body').forEach((btn) => {
+      // Make .log-entry-body divs keyboard-accessible without changing HTML.
+      if (btn.classList.contains('log-entry-body')) {
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('tabindex', '0');
+        const title = btn.closest('.log-entry')?.dataset.modalTitle || '';
+        if (title) btn.setAttribute('aria-label', `Open ${title} preview`);
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const entry = btn.closest('.log-entry');
+            if (entry) open(entry);
+          }
+        });
+      }
+      btn.addEventListener('click', () => {
+        const entry = btn.closest('.log-entry');
+        if (entry) open(entry);
+      });
+    });
+    modal.querySelectorAll('[data-close]').forEach((el) => {
+      el.addEventListener('click', close);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) close();
+    });
+  })();
+  // Log scrubber: highlight the tick nearest to viewport center, click to scroll.
+  (() => {
+    const ticks = document.querySelectorAll('.log-scrubber-tick');
+    if (!ticks.length) return;
+    const entries = document.querySelectorAll('.log-entry');
+    if (!entries.length) return;
+
+    function updateActive() {
+      const center = window.scrollY + window.innerHeight / 2;
+      let closestIdx = 0;
+      let minDist = Infinity;
+      entries.forEach((entry, i) => {
+        const rect = entry.getBoundingClientRect();
+        const entryCenter = window.scrollY + rect.top + rect.height / 2;
+        const dist = Math.abs(entryCenter - center);
+        if (dist < minDist) { minDist = dist; closestIdx = i; }
+      });
+      ticks.forEach((tick, i) => tick.classList.toggle('active', i === closestIdx));
+    }
+
+    ticks.forEach((tick, i) => {
+      tick.addEventListener('click', () => {
+        if (entries[i]) entries[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+
+    updateActive();
+    window.addEventListener('scroll', updateActive, { passive: true });
+    window.addEventListener('resize', updateActive);
+  })();
+  // Tab nav: switch between Work / About / Contact.
+  (() => {
+    const tabs = document.querySelectorAll('.tab-link');
+    const panels = document.querySelectorAll('.tab-panel');
+    if (!tabs.length || !panels.length) return;
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const name = tab.dataset.tab;
+        tabs.forEach((t) => {
+          const on = t === tab;
+          t.classList.toggle('active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        panels.forEach((p) => {
+          const on = p.dataset.panel === name;
+          p.classList.toggle('active', on);
+          if (on) p.removeAttribute('hidden'); else p.setAttribute('hidden', '');
+          // Lazy-load Play iframes on activation; unload on leave to free the WebGL context.
+          p.querySelectorAll('.play-embed-frame').forEach((f) => {
+            if (on && f.dataset.src && !f.src) f.src = f.dataset.src;
+            if (!on && f.src) f.removeAttribute('src');
+          });
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scratch Card</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      user-select: none;
+    }
+
+    .card {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      overflow: hidden;
+    }
+
+    .card-gloss {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%);
+      pointer-events: none;
+      border-radius: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 1.5rem;
+      z-index: 10;
+      width: 100%;
+    }
+
+    .apple-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 20px;
+      color: #111827;
+    }
+
+    .card-title {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #111827;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .card-sub {
+      font-size: 15px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .scratch-zone {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      margin-top: 2.5rem;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.06);
+      border: 1px solid #f3f4f6;
+      z-index: 10;
+    }
+
+    .holographic-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: linear-gradient(135deg,
+        #fafafa 0%, #f0f0f5 20%,
+        #e8e8f0 40%, #f5f5fa 60%,
+        #ebebf5 80%, #f8f8fd 100%);
+    }
+
+    .reveal-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-bottom: 12px;
+    }
+
+    .reveal-text {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #1f2937;
+      text-align: center;
+      line-height: 1.3;
+      padding: 0 1rem;
+    }
+
+    #scratchCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      border-radius: 16px;
+      transition: opacity 0.7s ease;
+      z-index: 20;
+    }
+
+    .card-footer {
+      margin-top: auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .barcode {
+      width: 80%;
+      height: 40px;
+      margin-bottom: 24px;
+      opacity: 0.6;
+      background-image: repeating-linear-gradient(
+        90deg,
+        #374151 0px, #374151 2px,
+        transparent 2px, transparent 5px,
+        #374151 5px, #374151 6px,
+        transparent 6px, transparent 9px,
+        #374151 9px, #374151 12px,
+        transparent 12px, transparent 14px,
+        #374151 14px, #374151 15px,
+        transparent 15px, transparent 20px,
+        #374151 20px, #374151 21px,
+        transparent 21px, transparent 25px,
+        #374151 25px, #374151 28px,
+        transparent 28px, transparent 30px
+      );
+      border-radius: 2px;
+    }
+
+    .fine-print {
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.4;
+      max-width: 90%;
+    }
+
+    #confettiCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="card">
+    <div class="card-gloss"></div>
+
+    <div class="card-header">
+      <svg class="apple-icon" viewBox="0 0 384 512" fill="currentColor">
+        <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+      </svg>
+      <h1 class="card-title">Welcome!</h1>
+      <p class="card-sub">Scratch for a message</p>
+    </div>
+
+    <div class="scratch-zone" id="scratchZone">
+      <div class="holographic-bg">
+        <span class="reveal-label">A message for you</span>
+        <div class="reveal-text">Thanks for looking at my portfolio</div>
+      </div>
+      <canvas id="scratchCanvas"></canvas>
+    </div>
+
+    <div class="card-footer">
+      <div class="barcode"></div>
+      <p class="fine-print">
+        Valid only for U.S. transactions in Apple properties. For assistance, visit support.apple.com/giftcard. Non-refundable. Not for resale. Void where prohibited.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('scratchCanvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const zone = document.getElementById('scratchZone');
+      const confettiCanvas = document.getElementById('confettiCanvas');
+      const cctx = confettiCanvas.getContext('2d');
+
+      let isDrawing = false;
+      let lastX = 0, lastY = 0;
+      let isRevealed = false;
+      let particles = [];
+
+      function initCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = zone.getBoundingClientRect();
+        const w = rect.width, h = rect.height;
+
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.scale(dpr, dpr);
+
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#e5e5ea');
+        grad.addColorStop(0.2, '#f2f2f7');
+        grad.addColorStop(0.5, '#d1d1d6');
+        grad.addColorStop(0.8, '#f2f2f7');
+        grad.addColorStop(1, '#e5e5ea');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.02)';
+        for (let i = 0; i < w; i += 4) {
+          for (let j = 0; j < h; j += 4) {
+            if (Math.random() > 0.5) ctx.fillRect(i, j, 2, 2);
+          }
+        }
+
+        ctx.font = '500 14px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = '#8e8e93';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText('Gently scratch to reveal message', w / 2, h / 2);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 30;
+      }
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+      }
+
+      function scratch(x, y, fromX, fromY) {
+        ctx.beginPath();
+        ctx.arc(x, y, 15, 0, Math.PI * 2);
+        ctx.fill();
+        if (fromX !== null) {
+          ctx.beginPath();
+          ctx.moveTo(fromX, fromY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+      }
+
+      function checkProgress() {
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let cleared = 0;
+        const step = 16;
+        const total = Math.floor(data.length / (4 * step));
+        for (let i = 3; i < data.length; i += 4 * step) {
+          if (data[i] < 128) cleared++;
+        }
+        if (cleared / total > 0.45 && !isRevealed) reveal();
+      }
+
+      function reveal() {
+        isRevealed = true;
+        canvas.style.opacity = '0';
+        setTimeout(() => {
+          canvas.style.pointerEvents = 'none';
+          launchConfetti();
+        }, 700);
+      }
+
+      function launchConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+        const colors = ['#378ADD','#1D9E75','#D85A30','#D4537E','#7F77DD','#639922','#EF9F27'];
+        for (let i = 0; i < 130; i++) {
+          particles.push({
+            x: Math.random() * confettiCanvas.width,
+            y: -20,
+            r: Math.random() * 7 + 3,
+            d: Math.random() * 60 + 20,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            tilt: Math.random() * 10 - 10,
+            tiltSpeed: Math.random() * 0.08 + 0.02,
+            speed: Math.random() * 3 + 2,
+            opacity: 1,
+            shape: Math.random() > 0.5 ? 'rect' : 'circle'
+          });
+        }
+        animateConfetti();
+      }
+
+      function animateConfetti() {
+        cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        particles.forEach(p => {
+          cctx.save();
+          cctx.globalAlpha = p.opacity;
+          cctx.fillStyle = p.color;
+          cctx.translate(p.x, p.y);
+          cctx.rotate(p.tilt * Math.PI / 180);
+          if (p.shape === 'rect') {
+            cctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+          } else {
+            cctx.beginPath();
+            cctx.arc(0, 0, p.r, 0, Math.PI * 2);
+            cctx.fill();
+          }
+          cctx.restore();
+          p.y += p.speed;
+          p.tilt += p.tiltSpeed;
+          p.x += Math.sin(p.d) * 1.2;
+          p.d += 0.02;
+          p.opacity -= 0.006;
+        });
+        particles = particles.filter(p => p.opacity > 0);
+        if (particles.length > 0) requestAnimationFrame(animateConfetti);
+        else cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      }
+
+      canvas.addEventListener('mousedown', e => { if (isRevealed) return; isDrawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; scratch(p.x, p.y, null, null); });
+      canvas.addEventListener('mousemove', e => { if (!isDrawing || isRevealed) return; const p = getPos(e); scratch(p.x, p.y, lastX, lastY); lastX = p.x; lastY = p.y; checkProgress(); });
+      canvas.addEventListener('mouseup', () => isDrawing = false);
+      canvas.addEventListener('mouseleave', () => isDrawing = false);
+      canvas.addEventListener('touchstart', e => { if (isRevealed) return; isDrawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; scratch(p.x, p.y, null, null); }, { passive: false });
+      canvas.addEventListener('touchmove', e => { if (!isDrawing || isRevealed) return; e.preventDefault(); const p = getPos(e); scratch(p.x, p.y, lastX, lastY); lastX = p.x; lastY = p.y; checkProgress(); }, { passive: false });
+      canvas.addEventListener('touchend', () => isDrawing = false);
+      canvas.addEventListener('touchcancel', () => isDrawing = false);
+
+      initCanvas();
+    })();
+  </script>
+</body>
+</html>

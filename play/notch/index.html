@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notch companion — Kayvan CM</title>
+<meta name="description" content="A small apple that lives in your MacBook notch and tells you when your AI is done thinking." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:opsz,wght,SOFT@9..144,300..600,50..100&display=swap" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  :root {
+    --bg: #faf8f2;
+    --fg: #1d1d1f;
+    --fg-mute: #6e6e73;
+    --screen: #1c1d20;
+    --notch: #0a0a0a;
+    --accent-ok: #4dbf85;
+    --accent-err: #e05a45;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: saturate(1.6) blur(20px);
+    -webkit-backdrop-filter: saturate(1.6) blur(20px);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .nav-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 4vw, 40px);
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .nav-links { display: flex; gap: 28px; font-size: 14px; color: var(--fg-mute); }
+  .nav-links a { color: inherit; text-decoration: none; }
+  .nav-links a:hover { color: var(--fg); }
+  .nav-back { font-size: 14px; color: var(--fg-mute); display: inline-flex; align-items: center; gap: 6px; }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(40px, 6vw, 72px) 20px 40px;
+  }
+
+  .header {
+    text-align: center;
+    max-width: 620px;
+    margin-bottom: clamp(40px, 5vw, 64px);
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--fg-mute);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1.08;
+  }
+  h1 em {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 60;
+  }
+  .lede {
+    margin-top: 16px;
+    color: var(--fg-mute);
+    font-size: clamp(15px, 1.4vw, 17px);
+    max-width: 52ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Stage — simulates the top of a MacBook display */
+  .stage {
+    position: relative;
+    width: min(900px, 100%);
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(180deg, #22242a 0%, #1a1b1e 100%);
+    border-radius: 22px 22px 16px 16px;
+    box-shadow:
+      0 0 0 3px #b8babf,
+      0 0 0 4px rgba(0,0,0,0.15),
+      0 30px 60px -20px rgba(0,0,0,0.35);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* Subtle desktop wallpaper hint */
+  .stage::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(107, 151, 232, 0.18), transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(207, 83, 48, 0.10), transparent 60%);
+    z-index: 0;
+  }
+  /* Menu bar */
+  .menu-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    color: rgba(255,255,255,0.65);
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    z-index: 1;
+  }
+  .menu-left, .menu-right { display: flex; align-items: center; gap: 14px; }
+  .menu-right { margin-left: auto; }
+  .menu-item { opacity: 0.85; }
+  .menu-apple { font-size: 13px; opacity: 0.95; }
+
+  /* Notch — the star of the show */
+  .notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 32px;
+    width: 210px;
+    background: var(--notch);
+    border-radius: 0 0 18px 18px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      width 420ms cubic-bezier(.22, 1.1, .36, 1),
+      height 420ms cubic-bezier(.22, 1.1, .36, 1),
+      background-color 260ms ease;
+  }
+  .notch[data-state="thinking"] {
+    width: 300px;
+    height: 68px;
+    border-radius: 0 0 34px 34px;
+  }
+  .notch[data-state="done"] {
+    width: 340px;
+    height: 72px;
+    border-radius: 0 0 36px 36px;
+    animation: notch-flash-ok 900ms ease-out;
+  }
+  .notch[data-state="error"] {
+    width: 300px;
+    height: 68px;
+    border-radius: 0 0 34px 34px;
+    animation: notch-shake 480ms ease-in-out;
+  }
+  @keyframes notch-flash-ok {
+    0%   { box-shadow: 0 0 0 0 rgba(77, 191, 133, 0); }
+    30%  { box-shadow: 0 0 40px 8px rgba(77, 191, 133, 0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(77, 191, 133, 0); }
+  }
+  @keyframes notch-shake {
+    0%, 100% { transform: translateX(-50%); }
+    20% { transform: translateX(calc(-50% - 6px)); }
+    40% { transform: translateX(calc(-50% + 6px)); }
+    60% { transform: translateX(calc(-50% - 4px)); }
+    80% { transform: translateX(calc(-50% + 4px)); }
+  }
+
+  /* Camera lens on the right side of the notch */
+  .camera {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #3a3a3f 0%, #0a0a0a 60%, #000 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    z-index: 6;
+  }
+
+  /* Apple character */
+  .apple {
+    width: 48px;
+    height: 32px;
+    display: block;
+    image-rendering: pixelated;
+    opacity: 0;
+    transform: translateY(6px) scale(0.86);
+    transition:
+      opacity 320ms ease,
+      transform 420ms cubic-bezier(.22, 1.4, .36, 1);
+  }
+  .notch[data-state="thinking"] .apple {
+    opacity: 1;
+    transform: translateY(6px) scale(1);
+    animation: apple-bob 1600ms ease-in-out infinite;
+  }
+  .notch[data-state="done"] .apple {
+    opacity: 1;
+    transform: translateY(4px) scale(1.08);
+    animation: apple-pop 720ms cubic-bezier(.22, 1.4, .36, 1);
+  }
+  .notch[data-state="error"] .apple {
+    opacity: 1;
+    transform: translateY(6px) scale(1);
+    animation: apple-wobble 480ms ease-in-out;
+  }
+  @keyframes apple-bob {
+    0%, 100% { transform: translateY(6px) scale(1); }
+    50%      { transform: translateY(-2px) scale(1.03); }
+  }
+  @keyframes apple-pop {
+    0%   { transform: translateY(24px) scale(0.7); }
+    50%  { transform: translateY(-6px) scale(1.15); }
+    100% { transform: translateY(4px) scale(1.08); }
+  }
+  @keyframes apple-wobble {
+    0%, 100% { transform: translateY(6px) scale(1) rotate(0); }
+    25%      { transform: translateY(6px) scale(1) rotate(-14deg); }
+    75%      { transform: translateY(6px) scale(1) rotate(14deg); }
+  }
+
+  /* Notch side content — dots / label */
+  .notch-side {
+    position: absolute;
+    color: rgba(255,255,255,0.75);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    opacity: 0;
+    transition: opacity 260ms ease 120ms;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .notch-side.left  { left: 18px;  top: 50%; transform: translateY(-50%); }
+  .notch-side.right { right: 18px; top: 50%; transform: translateY(-50%); }
+  .notch[data-state="thinking"] .notch-side.left,
+  .notch[data-state="thinking"] .notch-side.right,
+  .notch[data-state="done"] .notch-side.left,
+  .notch[data-state="done"] .notch-side.right,
+  .notch[data-state="error"] .notch-side.left,
+  .notch[data-state="error"] .notch-side.right { opacity: 1; }
+
+  /* Thinking dots */
+  .think-dots { display: inline-flex; gap: 4px; }
+  .think-dots span {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    animation: dot-pulse 1200ms ease-in-out infinite;
+  }
+  .think-dots span:nth-child(2) { animation-delay: 160ms; }
+  .think-dots span:nth-child(3) { animation-delay: 320ms; }
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50%      { opacity: 1;    transform: scale(1); }
+  }
+
+  /* State-conditional side text */
+  .notch-side .label { display: none; }
+  .notch[data-state="thinking"] .side-thinking,
+  .notch[data-state="done"]     .side-done,
+  .notch[data-state="error"]    .side-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .side-done .glyph  { color: var(--accent-ok); font-size: 15px; }
+  .side-error .glyph { color: var(--accent-err); font-size: 15px; font-weight: 700; }
+
+  /* Controls */
+  .controls {
+    margin-top: 40px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--fg);
+    border: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 160ms ease;
+  }
+  .btn:hover { background: #f5f5f7; transform: translateY(-1px); }
+  .btn[aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--bg);
+    border-color: var(--fg);
+  }
+
+  /* Description */
+  .about {
+    margin-top: clamp(56px, 7vw, 88px);
+    max-width: 640px;
+    text-align: center;
+  }
+  .about h2 {
+    font-family: "Fraunces", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-variation-settings: "SOFT" 60;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+  .about p {
+    color: var(--fg-mute);
+    font-size: 15px;
+  }
+  .about p + p { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="../../index.html">Kayvan CM</a>
+    <div class="nav-links">
+      <a class="nav-back" href="../../index.html">&larr; Back</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="header">
+    <div class="eyebrow">Play</div>
+    <h1>A friendly apple in the <em>notch</em>.</h1>
+    <p class="lede">A little companion that peeks out of the MacBook notch when your assistant is thinking, done, or in trouble.</p>
+  </div>
+
+  <div class="stage" aria-label="MacBook screen with notch companion">
+    <div class="menu-bar" aria-hidden="true">
+      <div class="menu-left">
+        <span class="menu-apple"></span>
+        <span class="menu-item">Finder</span>
+        <span class="menu-item">File</span>
+        <span class="menu-item">Edit</span>
+        <span class="menu-item">View</span>
+      </div>
+      <div class="menu-right">
+        <span class="menu-item">100%</span>
+        <span class="menu-item">Fri 2:14 PM</span>
+      </div>
+    </div>
+
+    <div class="notch" id="notch" data-state="idle" role="status" aria-live="polite">
+      <div class="notch-side left" aria-hidden="true">
+        <span class="label side-thinking">
+          <span class="think-dots"><span></span><span></span><span></span></span>
+        </span>
+        <span class="label side-done"><span class="glyph">&#10003;</span></span>
+        <span class="label side-error"><span class="glyph">&#33;</span></span>
+      </div>
+
+      <svg class="apple" viewBox="0 0 48 32" shape-rendering="crispEdges" aria-hidden="true">
+        <!-- Head (rows 0-1) -->
+        <rect x="28" y="0"  width="8"  height="4" fill="#a5c93a"/>
+        <rect x="24" y="4"  width="8"  height="4" fill="#a5c93a"/>
+        <!-- Body core (rows 2-5, cols 3-10) -->
+        <rect x="12" y="8"  width="32" height="16" fill="#a5c93a"/>
+        <!-- Left / right bulges (rows 3-4, cols 2 and 11) -->
+        <rect x="8"  y="12" width="4"  height="8"  fill="#a5c93a"/>
+        <rect x="44" y="12" width="4"  height="8"  fill="#a5c93a"/>
+        <!-- Eyes (row 3) -->
+        <rect x="16" y="12" width="4"  height="4"  fill="#000000"/>
+        <rect x="36" y="12" width="4"  height="4"  fill="#000000"/>
+        <!-- Feet (row 6) -->
+        <rect x="16" y="24" width="4"  height="4"  fill="#a5c93a"/>
+        <rect x="36" y="24" width="4"  height="4"  fill="#a5c93a"/>
+      </svg>
+
+      <div class="notch-side right" aria-hidden="true">
+        <span class="label side-thinking">Thinking</span>
+        <span class="label side-done">Ready</span>
+        <span class="label side-error">Error</span>
+      </div>
+
+      <div class="camera" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="controls" role="group" aria-label="Notch state controls">
+    <button class="btn" data-state="idle"     aria-pressed="true">Idle</button>
+    <button class="btn" data-state="thinking" aria-pressed="false">Thinking</button>
+    <button class="btn" data-state="done"     aria-pressed="false">Done</button>
+    <button class="btn" data-state="error"    aria-pressed="false">Error</button>
+  </div>
+
+  <div class="about">
+    <h2>The idea.</h2>
+    <p>When Claude Code boots, a little pixel apple greets you. This gives that apple a job: it lives in the MacBook notch and peeks out to tell you when your assistant is thinking, ready, or in trouble.</p>
+    <p>Currently a design demo. A real version would be a small native app that listens for Claude Code&rsquo;s <em>Stop</em> hook and animates the notch in place.</p>
+  </div>
+</main>
+
+<script>
+  (() => {
+    const notch = document.getElementById('notch');
+    const buttons = document.querySelectorAll('.btn');
+
+    function setState(state) {
+      notch.setAttribute('data-state', state);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', b.dataset.state === state ? 'true' : 'false'));
+      // Auto-return "done" and "error" to idle after the flash
+      if (state === 'done' || state === 'error') {
+        clearTimeout(setState._t);
+        setState._t = setTimeout(() => setState('idle'), 1800);
+      }
+    }
+
+    buttons.forEach((b) => {
+      b.addEventListener('click', () => setState(b.dataset.state));
+    });
+
+    // Kick things off with a gentle sequence so visitors see it work
+    setTimeout(() => setState('thinking'), 900);
+    setTimeout(() => setState('done'),     3800);
+    setTimeout(() => setState('idle'),     5800);
+  })();
+</script>
+</body>
+</html>

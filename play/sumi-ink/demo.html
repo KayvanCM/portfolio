@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>Sumi Ink — Demo</title>
+<style>
+  :root {
+    --paper: #ede8dc;
+    --ink: #14110d;
+    --ui: rgba(20, 17, 13, 0.72);
+    --ui-soft: rgba(20, 17, 13, 0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino", "Georgia", serif;
+    -webkit-font-smoothing: antialiased;
+    touch-action: none;
+  }
+  canvas#sim {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+  .dock {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px; align-items: center;
+    padding: 5px 8px;
+    background: rgba(237, 232, 220, 0.82);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid rgba(20, 17, 13, 0.12);
+    border-radius: 999px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.55) inset, 0 6px 18px -10px rgba(20,17,13,0.35);
+    z-index: 2;
+    opacity: 0;
+    transform: translate(-50%, 6px);
+    transition: opacity 220ms ease, transform 220ms ease;
+    pointer-events: none;
+  }
+  .dock.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .swatches { display: flex; gap: 4px; padding: 0 4px; }
+  .swatch {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid rgba(20,17,13,0.18);
+    cursor: pointer;
+    padding: 0; background-clip: padding-box;
+  }
+  .swatch.active { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--ink); }
+  .divider { width: 1px; height: 14px; background: rgba(20,17,13,0.14); }
+  .btn {
+    appearance: none; border: none; background: transparent;
+    font: inherit; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ui);
+    padding: 4px 8px; border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .btn:hover { background: rgba(20,17,13,0.06); }
+  .btn.active { background: var(--ink); color: var(--paper); }
+  .btn.ghost:hover { background: rgba(20,17,13,0.06); }
+</style>
+</head>
+<body>
+<canvas id="sim"></canvas>
+
+<div class="dock" id="dock">
+  <button class="btn active" data-tool="drop">Drop</button>
+  <button class="btn" data-tool="fan">Fan</button>
+  <div class="divider"></div>
+  <div class="swatches" id="swatches"></div>
+  <div class="divider"></div>
+  <button class="btn ghost" id="clear">Clear</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('sim');
+
+  // ── Palette ──────────────────────────────────────────────
+  const PAPER = [0xed / 255, 0xe8 / 255, 0xdc / 255];
+  const INK_HEX = ['#14110d', '#2b3a55', '#7a3b2e', '#c9a24b', '#4a5a3a'];
+  const INK_RGB = INK_HEX.map(h => [
+    parseInt(h.slice(1, 3), 16) / 255,
+    parseInt(h.slice(3, 5), 16) / 255,
+    parseInt(h.slice(5, 7), 16) / 255,
+  ]);
+  const DYE_RGB = INK_RGB.map(([r, g, b]) => [
+    Math.log(PAPER[0] / Math.max(r, 0.002)),
+    Math.log(PAPER[1] / Math.max(g, 0.002)),
+    Math.log(PAPER[2] / Math.max(b, 0.002)),
+  ]);
+
+  const state = {
+    tool: 'drop',
+    colorIdx: 0,
+    live: false,        // paused until hovered
+    hovered: false,
+    dpr: Math.min(window.devicePixelRatio || 1, 2),
+    pointer: { down: false, x: 0, y: 0, px: 0, py: 0 },
+    lastDrop: 0,
+    lastTime: performance.now(),
+    lastDriftAt: 0,
+  };
+
+  // Canvas dimensions in CSS pixels — always match container.
+  let vW = 0, vH = 0;
+
+  // ── Three.js setup ───────────────────────────────────────
+  const renderer = new THREE.WebGLRenderer({
+    canvas, antialias: false, preserveDrawingBuffer: false, alpha: false,
+  });
+  renderer.autoClear = false;
+
+  const isWebGL2 = renderer.capabilities.isWebGL2;
+  const halfFloat = renderer.extensions.get('OES_texture_half_float');
+  const halfFloatLinear = renderer.extensions.get('OES_texture_half_float_linear');
+  const useHalf = isWebGL2 || !!halfFloat;
+  const canLinear = isWebGL2 || !!halfFloatLinear;
+  const dataType = useHalf ? THREE.HalfFloatType : THREE.UnsignedByteType;
+  const filter = canLinear ? THREE.LinearFilter : THREE.NearestFilter;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+  scene.add(quad);
+
+  // ── Framebuffers ─────────────────────────────────────────
+  const SIM_BASE = 224;
+  const DYE_BASE = 896;
+  let simW, simH, dyeW, dyeH;
+  let velocity, dye, pressure, curl, divergence;
+
+  function makeRT(w, h, filt = filter) {
+    return new THREE.WebGLRenderTarget(w, h, {
+      wrapS: THREE.ClampToEdgeWrapping,
+      wrapT: THREE.ClampToEdgeWrapping,
+      minFilter: filt,
+      magFilter: filt,
+      format: THREE.RGBAFormat,
+      type: dataType,
+      depthBuffer: false,
+      stencilBuffer: false,
+    });
+  }
+  function makeDoubleRT(w, h, filt = filter) {
+    return {
+      read: makeRT(w, h, filt),
+      write: makeRT(w, h, filt),
+      swap() { const t = this.read; this.read = this.write; this.write = t; }
+    };
+  }
+  function disposeDouble(pair) { pair.read.dispose(); pair.write.dispose(); }
+
+  function initFBOs() {
+    const ar = (vW || 1) / (vH || 1);
+    simW = Math.round(SIM_BASE * (ar >= 1 ? ar : 1));
+    simH = Math.round(SIM_BASE * (ar >= 1 ? 1 : 1 / ar));
+    dyeW = Math.round(DYE_BASE * (ar >= 1 ? ar : 1));
+    dyeH = Math.round(DYE_BASE * (ar >= 1 ? 1 : 1 / ar));
+    if (velocity) { disposeDouble(velocity); disposeDouble(dye); disposeDouble(pressure); curl.dispose(); divergence.dispose(); }
+    velocity = makeDoubleRT(simW, simH);
+    dye = makeDoubleRT(dyeW, dyeH);
+    pressure = makeDoubleRT(simW, simH, THREE.NearestFilter);
+    curl = makeRT(simW, simH, THREE.NearestFilter);
+    divergence = makeRT(simW, simH, THREE.NearestFilter);
+  }
+
+  // ── Shaders (identical to full app) ──────────────────────
+  const VERT = `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+  `;
+  function makeMat(frag, uniforms) {
+    return new THREE.ShaderMaterial({
+      vertexShader: VERT, fragmentShader: frag,
+      uniforms, depthTest: false, depthWrite: false,
+    });
+  }
+
+  const advectMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity, uSource;
+    uniform vec2 uTexelVel;
+    uniform float uDt, uDissipation;
+    void main() {
+      vec2 coord = vUv - uDt * texture2D(uVelocity, vUv).xy * uTexelVel;
+      vec4 result = texture2D(uSource, coord);
+      gl_FragColor = result / (1.0 + uDissipation * uDt);
+    }
+  `, {
+    uVelocity: { value: null }, uSource: { value: null },
+    uTexelVel: { value: new THREE.Vector2() },
+    uDt: { value: 0 }, uDissipation: { value: 0 },
+  });
+
+  const splatMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTarget;
+    uniform float uAspect, uRadius;
+    uniform vec2 uPoint;
+    uniform vec3 uColor;
+    void main() {
+      vec2 p = vUv - uPoint;
+      p.x *= uAspect;
+      vec3 splat = exp(-dot(p, p) / uRadius) * uColor;
+      vec4 base = texture2D(uTarget, vUv);
+      gl_FragColor = vec4(base.rgb + splat, 1.0);
+    }
+  `, {
+    uTarget: { value: null }, uAspect: { value: 1 }, uRadius: { value: 0.001 },
+    uPoint: { value: new THREE.Vector2() }, uColor: { value: new THREE.Vector3() },
+  });
+
+  const curlMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform vec2 uTexel;
+    void main() {
+      float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).y;
+      float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).y;
+      float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).x;
+      float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).x;
+      gl_FragColor = vec4(0.5 * (R - L - T + B), 0.0, 0.0, 1.0);
+    }
+  `, { uVelocity: { value: null }, uTexel: { value: new THREE.Vector2() } });
+
+  const vorticityMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity, uCurl;
+    uniform vec2 uTexel;
+    uniform float uCurlStrength, uDt;
+    void main() {
+      float L = texture2D(uCurl, vUv - vec2(uTexel.x, 0.0)).x;
+      float R = texture2D(uCurl, vUv + vec2(uTexel.x, 0.0)).x;
+      float B = texture2D(uCurl, vUv - vec2(0.0, uTexel.y)).x;
+      float T = texture2D(uCurl, vUv + vec2(0.0, uTexel.y)).x;
+      float C = texture2D(uCurl, vUv).x;
+      vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+      force /= length(force) + 0.0001;
+      force *= uCurlStrength * C;
+      force.y = -force.y;
+      vec2 vel = texture2D(uVelocity, vUv).xy;
+      vel += force * uDt;
+      vel = clamp(vel, -1000.0, 1000.0);
+      gl_FragColor = vec4(vel, 0.0, 1.0);
+    }
+  `, {
+    uVelocity: { value: null }, uCurl: { value: null },
+    uTexel: { value: new THREE.Vector2() },
+    uCurlStrength: { value: 28 }, uDt: { value: 0 },
+  });
+
+  const divergenceMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity;
+    uniform vec2 uTexel;
+    void main() {
+      float L = texture2D(uVelocity, vUv - vec2(uTexel.x, 0.0)).x;
+      float R = texture2D(uVelocity, vUv + vec2(uTexel.x, 0.0)).x;
+      float B = texture2D(uVelocity, vUv - vec2(0.0, uTexel.y)).y;
+      float T = texture2D(uVelocity, vUv + vec2(0.0, uTexel.y)).y;
+      vec2 C = texture2D(uVelocity, vUv).xy;
+      if (vUv.x - uTexel.x < 0.0) L = -C.x;
+      if (vUv.x + uTexel.x > 1.0) R = -C.x;
+      if (vUv.y - uTexel.y < 0.0) B = -C.y;
+      if (vUv.y + uTexel.y > 1.0) T = -C.y;
+      float div = 0.5 * (R - L + T - B);
+      gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+    }
+  `, { uVelocity: { value: null }, uTexel: { value: new THREE.Vector2() } });
+
+  const clearDecayMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTexture;
+    uniform float uValue;
+    void main() { gl_FragColor = uValue * texture2D(uTexture, vUv); }
+  `, { uTexture: { value: null }, uValue: { value: 0 } });
+
+  const pressureMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uPressure, uDivergence;
+    uniform vec2 uTexel;
+    void main() {
+      float L = texture2D(uPressure, vUv - vec2(uTexel.x, 0.0)).x;
+      float R = texture2D(uPressure, vUv + vec2(uTexel.x, 0.0)).x;
+      float B = texture2D(uPressure, vUv - vec2(0.0, uTexel.y)).x;
+      float T = texture2D(uPressure, vUv + vec2(0.0, uTexel.y)).x;
+      float div = texture2D(uDivergence, vUv).x;
+      gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
+    }
+  `, {
+    uPressure: { value: null }, uDivergence: { value: null },
+    uTexel: { value: new THREE.Vector2() },
+  });
+
+  const gradientMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uPressure, uVelocity;
+    uniform vec2 uTexel;
+    void main() {
+      float L = texture2D(uPressure, vUv - vec2(uTexel.x, 0.0)).x;
+      float R = texture2D(uPressure, vUv + vec2(uTexel.x, 0.0)).x;
+      float B = texture2D(uPressure, vUv - vec2(0.0, uTexel.y)).x;
+      float T = texture2D(uPressure, vUv + vec2(0.0, uTexel.y)).x;
+      vec2 vel = texture2D(uVelocity, vUv).xy;
+      vel -= 0.5 * vec2(R - L, T - B);
+      gl_FragColor = vec4(vel, 0.0, 1.0);
+    }
+  `, {
+    uPressure: { value: null }, uVelocity: { value: null },
+    uTexel: { value: new THREE.Vector2() },
+  });
+
+  const displayMat = makeMat(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uDye, uGrain;
+    uniform vec3 uPaper;
+    uniform vec2 uGrainScale;
+    uniform float uGrainAmt;
+    void main() {
+      vec3 dye = texture2D(uDye, vUv).rgb;
+      vec3 base = uPaper * exp(-dye);
+      vec3 grain = texture2D(uGrain, vUv * uGrainScale).rgb;
+      vec3 mixed = mix(base, base * grain, uGrainAmt);
+      gl_FragColor = vec4(clamp(mixed, 0.0, 1.0), 1.0);
+    }
+  `, {
+    uDye: { value: null }, uGrain: { value: null },
+    uPaper: { value: new THREE.Vector3(...PAPER) },
+    uGrainScale: { value: new THREE.Vector2(4, 4) },
+    uGrainAmt: { value: 0.55 },
+  });
+
+  // ── Paper grain ──────────────────────────────────────────
+  function makeGrainCanvas(w = 512) {
+    const c = document.createElement('canvas');
+    c.width = c.height = w;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f7f2e6';
+    g.fillRect(0, 0, w, w);
+    const img = g.getImageData(0, 0, w, w);
+    const d = img.data;
+    const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+    for (let i = 0; i < d.length; i += 4) {
+      const j = (Math.random() - 0.5) * 22;
+      d[i]   = clamp(d[i]   + j, 210, 255);
+      d[i+1] = clamp(d[i+1] + j, 205, 255);
+      d[i+2] = clamp(d[i+2] + j, 195, 250);
+    }
+    g.putImageData(img, 0, 0);
+    g.globalAlpha = 0.09;
+    g.strokeStyle = '#9a8556';
+    g.lineWidth = 0.6;
+    for (let i = 0; i < 90; i++) {
+      g.beginPath();
+      g.moveTo(Math.random() * w, Math.random() * w);
+      g.bezierCurveTo(Math.random()*w, Math.random()*w, Math.random()*w, Math.random()*w, Math.random()*w, Math.random()*w);
+      g.stroke();
+    }
+    g.globalAlpha = 0.18;
+    g.fillStyle = '#7d6a3f';
+    for (let i = 0; i < 40; i++) g.fillRect(Math.random()*w, Math.random()*w, 1, 1);
+    return c;
+  }
+  const grainTex = new THREE.CanvasTexture(makeGrainCanvas(512));
+  grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping;
+  grainTex.minFilter = THREE.LinearFilter;
+  grainTex.magFilter = THREE.LinearFilter;
+  displayMat.uniforms.uGrain.value = grainTex;
+
+  // ── Blit + clear ─────────────────────────────────────────
+  function blit(target, material) {
+    quad.material = material;
+    renderer.setRenderTarget(target);
+    renderer.render(scene, camera);
+  }
+  function clearRT(rt) {
+    renderer.setRenderTarget(rt);
+    renderer.setClearColor(0x000000, 0);
+    renderer.clear();
+  }
+
+  // ── Sim ──────────────────────────────────────────────────
+  const PRESSURE_ITERS = 22;
+  const CURL_STRENGTH = 28;
+  const VEL_DISSIPATION = 0.20;
+  const DYE_DISSIPATION = 0.05;
+  const PRESSURE_DECAY = 0.80;
+  const texelSim = new THREE.Vector2();
+
+  function step(dt) {
+    texelSim.set(1 / simW, 1 / simH);
+
+    curlMat.uniforms.uVelocity.value = velocity.read.texture;
+    curlMat.uniforms.uTexel.value = texelSim;
+    blit(curl, curlMat);
+
+    vorticityMat.uniforms.uVelocity.value = velocity.read.texture;
+    vorticityMat.uniforms.uCurl.value = curl.texture;
+    vorticityMat.uniforms.uTexel.value = texelSim;
+    vorticityMat.uniforms.uCurlStrength.value = CURL_STRENGTH;
+    vorticityMat.uniforms.uDt.value = dt;
+    blit(velocity.write, vorticityMat);
+    velocity.swap();
+
+    divergenceMat.uniforms.uVelocity.value = velocity.read.texture;
+    divergenceMat.uniforms.uTexel.value = texelSim;
+    blit(divergence, divergenceMat);
+
+    clearDecayMat.uniforms.uTexture.value = pressure.read.texture;
+    clearDecayMat.uniforms.uValue.value = PRESSURE_DECAY;
+    blit(pressure.write, clearDecayMat);
+    pressure.swap();
+
+    pressureMat.uniforms.uDivergence.value = divergence.texture;
+    pressureMat.uniforms.uTexel.value = texelSim;
+    for (let i = 0; i < PRESSURE_ITERS; i++) {
+      pressureMat.uniforms.uPressure.value = pressure.read.texture;
+      blit(pressure.write, pressureMat);
+      pressure.swap();
+    }
+
+    gradientMat.uniforms.uPressure.value = pressure.read.texture;
+    gradientMat.uniforms.uVelocity.value = velocity.read.texture;
+    gradientMat.uniforms.uTexel.value = texelSim;
+    blit(velocity.write, gradientMat);
+    velocity.swap();
+
+    advectMat.uniforms.uVelocity.value = velocity.read.texture;
+    advectMat.uniforms.uSource.value = velocity.read.texture;
+    advectMat.uniforms.uTexelVel.value = texelSim;
+    advectMat.uniforms.uDt.value = dt;
+    advectMat.uniforms.uDissipation.value = VEL_DISSIPATION;
+    blit(velocity.write, advectMat);
+    velocity.swap();
+
+    advectMat.uniforms.uVelocity.value = velocity.read.texture;
+    advectMat.uniforms.uSource.value = dye.read.texture;
+    advectMat.uniforms.uTexelVel.value = texelSim;
+    advectMat.uniforms.uDt.value = dt;
+    advectMat.uniforms.uDissipation.value = DYE_DISSIPATION;
+    blit(dye.write, advectMat);
+    dye.swap();
+  }
+
+  function display() {
+    displayMat.uniforms.uDye.value = dye.read.texture;
+    quad.material = displayMat;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+  }
+
+  // ── Splats ───────────────────────────────────────────────
+  function pxToRadius(px) {
+    const norm = px / Math.max(vH, 1);
+    return norm * norm;
+  }
+  function splatVelocity(u, v, dx, dy, radiusPx) {
+    splatMat.uniforms.uTarget.value = velocity.read.texture;
+    splatMat.uniforms.uAspect.value = simW / simH;
+    splatMat.uniforms.uPoint.value.set(u, v);
+    splatMat.uniforms.uColor.value.set(dx, dy, 0);
+    splatMat.uniforms.uRadius.value = pxToRadius(radiusPx);
+    blit(velocity.write, splatMat);
+    velocity.swap();
+  }
+  function splatDye(u, v, dyeColor, intensity, radiusPx) {
+    splatMat.uniforms.uTarget.value = dye.read.texture;
+    splatMat.uniforms.uAspect.value = dyeW / dyeH;
+    splatMat.uniforms.uPoint.value.set(u, v);
+    splatMat.uniforms.uColor.value.set(
+      dyeColor[0] * intensity, dyeColor[1] * intensity, dyeColor[2] * intensity,
+    );
+    splatMat.uniforms.uRadius.value = pxToRadius(radiusPx);
+    blit(dye.write, splatMat);
+    dye.swap();
+  }
+  function radialPush(u, v, strength, radiusPx) {
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + Math.random() * 0.2;
+      const r = 0.02;
+      splatVelocity(u + Math.cos(a) * r, v + Math.sin(a) * r,
+        Math.cos(a) * strength, Math.sin(a) * strength, radiusPx);
+    }
+  }
+
+  // ── Tools ────────────────────────────────────────────────
+  const DROP_RADIUS_PX = 32;
+  const DROP_CORE_PX = 10;
+  const DROP_TRAIL_PX = 18;
+  const FAN_RADIUS_PX = 45;
+  const DROP_INTENSITY = 0.85;
+  const DROP_CORE_INTENSITY = 0.55;
+  const TRAIL_INTENSITY = 0.4;
+  const FAN_FORCE = 3000;
+
+  function doDrop(u, v, dyeColor) {
+    radialPush(u, v, 0.4, DROP_RADIUS_PX);
+    splatDye(u, v, dyeColor, DROP_INTENSITY, DROP_RADIUS_PX);
+    splatDye(u, v, dyeColor, DROP_CORE_INTENSITY, DROP_CORE_PX);
+  }
+  function doTrail(u, v, dyeColor, du, dv) {
+    splatDye(u, v, dyeColor, TRAIL_INTENSITY, DROP_TRAIL_PX);
+    splatVelocity(u, v, du * 1.5, dv * 1.5, DROP_TRAIL_PX);
+  }
+  function doFan(u, v, du, dv) {
+    splatVelocity(u, v, du * FAN_FORCE, dv * FAN_FORCE, FAN_RADIUS_PX);
+  }
+
+  // ── Resize (container-driven) ────────────────────────────
+  function resize() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return;
+    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(state.dpr);
+    renderer.setSize(w, h, false); // don't touch CSS
+    vW = w; vH = h;
+    initFBOs();
+  }
+  const ro = new ResizeObserver(resize);
+  ro.observe(canvas);
+  window.addEventListener('resize', resize);
+
+  // ── Input ────────────────────────────────────────────────
+  function clientToUV(cx, cy) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      u: (cx - rect.left) / rect.width,
+      v: 1 - (cy - rect.top) / rect.height,
+    };
+  }
+  function pos(e) {
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    const p = pos(e);
+    state.pointer.down = true;
+    state.pointer.x = state.pointer.px = p.x;
+    state.pointer.y = state.pointer.py = p.y;
+    state.live = true;
+    state.hovered = true;
+    if (state.tool === 'drop') {
+      const { u, v } = clientToUV(p.x, p.y);
+      doDrop(u, v, DYE_RGB[state.colorIdx]);
+      state.lastDrop = performance.now();
+    }
+  }
+  function onMove(e) {
+    if (!state.pointer.down) return;
+    e.preventDefault();
+    const p = pos(e);
+    state.pointer.px = state.pointer.x;
+    state.pointer.py = state.pointer.y;
+    state.pointer.x = p.x;
+    state.pointer.y = p.y;
+    const dx = p.x - state.pointer.px;
+    const dy = p.y - state.pointer.py;
+    const dist = Math.hypot(dx, dy);
+    const { u, v } = clientToUV(p.x, p.y);
+    const du = dx / Math.max(vH, 1);
+    const dv = -dy / Math.max(vH, 1);
+    if (state.tool === 'drop') {
+      const now = performance.now();
+      if (dist > 16 && now - state.lastDrop > 22) {
+        doTrail(u, v, DYE_RGB[state.colorIdx], du, dv);
+        state.lastDrop = now;
+      }
+    } else if (state.tool === 'fan') {
+      if (dist > 1) doFan(u, v, du, dv);
+    }
+  }
+  function onUp() { state.pointer.down = false; }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', onDown, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('touchend', onUp);
+
+  // ── Hover: gate the sim + dock ──────────────────────────
+  const dockEl = document.getElementById('dock');
+  function activate() {
+    state.hovered = true;
+    state.live = true;
+    dockEl.classList.add('on');
+  }
+  function deactivate() {
+    if (state.pointer.down) return; // don't kill mid-drag
+    state.hovered = false;
+    state.live = false;
+    dockEl.classList.remove('on');
+  }
+  document.body.addEventListener('pointerenter', activate);
+  document.body.addEventListener('pointerleave', deactivate);
+  // Touch: activate on first tap, don't auto-deactivate
+  document.body.addEventListener('touchstart', activate, { passive: false });
+
+  // ── Auto-drift: keep the surface alive while hovered ─────
+  const AUTO_DRIFT_MS = 3500;
+  function maybeAutoDrift(now) {
+    if (!state.live || !state.hovered || state.pointer.down) return;
+    if (now - state.lastDriftAt < AUTO_DRIFT_MS) return;
+    const u = 0.25 + Math.random() * 0.5;
+    const v = 0.25 + Math.random() * 0.5;
+    const a = Math.random() * Math.PI * 2;
+    const s = 0.05;
+    splatVelocity(u, v, Math.cos(a) * s * FAN_FORCE, Math.sin(a) * s * FAN_FORCE, FAN_RADIUS_PX);
+    state.lastDriftAt = now;
+  }
+
+  // ── UI wiring ────────────────────────────────────────────
+  const swatchesEl = document.getElementById('swatches');
+  INK_HEX.forEach((hex, i) => {
+    const s = document.createElement('button');
+    s.className = 'swatch' + (i === 0 ? ' active' : '');
+    s.style.background = hex;
+    s.title = hex;
+    s.addEventListener('click', () => {
+      state.colorIdx = i;
+      swatchesEl.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+    swatchesEl.appendChild(s);
+  });
+
+  dockEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-tool]');
+    if (!b) return;
+    state.tool = b.dataset.tool;
+    document.querySelectorAll('button[data-tool]').forEach(x => x.classList.toggle('active', x === b));
+    canvas.style.cursor = state.tool === 'drop' ? 'crosshair' : 'grab';
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    clearRT(velocity.read); clearRT(velocity.write);
+    clearRT(dye.read); clearRT(dye.write);
+    clearRT(pressure.read); clearRT(pressure.write);
+  });
+
+  // ── Starter ink so the tile isn't blank on load ──────────
+  function starter() {
+    const centerU = 0.5, centerV = 0.5;
+    const seeds = [
+      { u: centerU, v: centerV, i: 0 },
+      { u: centerU - 0.14, v: centerV + 0.08, i: 1 },
+      { u: centerU + 0.16, v: centerV - 0.05, i: 3 },
+    ];
+    for (const s of seeds) doDrop(s.u, s.v, DYE_RGB[s.i]);
+    // A gentle initial current so the pattern isn't purely radial rings.
+    splatVelocity(0.3, 0.6, 0.03 * FAN_FORCE, -0.02 * FAN_FORCE, FAN_RADIUS_PX);
+    splatVelocity(0.7, 0.4, -0.025 * FAN_FORCE, 0.02 * FAN_FORCE, FAN_RADIUS_PX);
+  }
+
+  // ── Loop ─────────────────────────────────────────────────
+  const MAX_DT = 1 / 30;
+  function tick() {
+    const now = performance.now();
+    let dt = (now - state.lastTime) / 1000;
+    state.lastTime = now;
+    if (dt > MAX_DT) dt = MAX_DT;
+    maybeAutoDrift(now);
+    if (state.live) step(dt);
+    display();
+    requestAnimationFrame(tick);
+  }
+
+  resize();
+  starter();
+  // Run one paused advance step so starter dye renders visibly before hover.
+  step(0.016);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

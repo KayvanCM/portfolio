@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#efece5" />
+<title>Rocket — Kayvan CM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+  :root {
+    --paper: #efece5;
+    --ink:   #1d1d1f;
+    --mute:  #6e6e73;
+    --faint: rgba(29, 29, 31, 0.20);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; touch-action: none; }
+
+  .chrome {
+    position: fixed;
+    left: 0; right: 0;
+    padding: clamp(20px, 3vw, 32px) clamp(24px, 5vw, 48px);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .chrome-top { top: 0; }
+  .chrome-bottom { bottom: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+
+  .back {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mute);
+    text-decoration: none;
+    padding: 8px 12px;
+    margin: -8px -12px;
+    border-radius: 999px;
+    transition: color 160ms ease, background-color 160ms ease;
+  }
+  .back:hover, .back:focus-visible {
+    color: var(--ink);
+    background: rgba(29, 29, 31, 0.04);
+    outline: none;
+  }
+
+  .title-block { max-width: 42ch; }
+  .title-block h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .title-block p {
+    margin: 0;
+    font-size: clamp(13px, 1.2vw, 15px);
+    color: var(--mute);
+    line-height: 1.5;
+    max-width: 42ch;
+  }
+
+  .hud {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(239, 236, 229, 0.72);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border: 1px solid rgba(29, 29, 31, 0.08);
+    border-radius: 999px;
+  }
+  .hud::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--faint);
+  }
+  .hud.live::before {
+    background: #e85d3a;
+    box-shadow: 0 0 6px rgba(232, 93, 58, 0.6);
+  }
+
+  .status {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(72px, 8vw, 96px);
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+    background: rgba(239, 236, 229, 0.7);
+    -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+    padding: 8px 14px;
+    border-radius: 999px;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 400ms ease;
+  }
+  .status.fade { opacity: 0; }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+
+<div class="chrome chrome-top">
+  <a class="back" href="../../index.html">← Back</a>
+</div>
+
+<div class="chrome chrome-bottom">
+  <div class="title-block">
+    <h1>Rocket</h1>
+    <p>Drag to rotate. A small still-life in three.js.</p>
+  </div>
+  <div class="hud" id="hud">Loading</div>
+</div>
+
+<div class="status" id="status">drag to rotate</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+// ============ Scene ============
+const stage = document.getElementById('stage')
+const hud   = document.getElementById('hud')
+const statusEl = document.getElementById('status')
+
+const scene = new THREE.Scene()
+scene.background = new THREE.Color('#efece5')
+
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100)
+camera.position.set(3.2, 2.4, 4.6)
+
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.05
+stage.appendChild(renderer.domElement)
+
+// ============ Lighting: soft studio ============
+scene.add(new THREE.HemisphereLight('#fff8ec', '#1a1712', 0.55))
+
+const key = new THREE.DirectionalLight('#fff2d1', 1.4)
+key.position.set(4, 6, 3)
+key.castShadow = true
+key.shadow.mapSize.width  = 2048
+key.shadow.mapSize.height = 2048
+key.shadow.camera.near = 0.1
+key.shadow.camera.far  = 20
+key.shadow.camera.left   = -4
+key.shadow.camera.right  =  4
+key.shadow.camera.top    =  4
+key.shadow.camera.bottom = -4
+key.shadow.bias = -0.0004
+scene.add(key)
+
+const rim = new THREE.DirectionalLight('#e0d3a8', 0.35)
+rim.position.set(-3, 2, -4)
+scene.add(rim)
+
+const fill = new THREE.DirectionalLight('#ffffff', 0.25)
+fill.position.set(-2, 3, 4)
+scene.add(fill)
+
+// ============ Ground: paper cream plane that catches shadows ============
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(6, 64),
+  new THREE.ShadowMaterial({ opacity: 0.22 })
+)
+ground.rotation.x = -Math.PI / 2
+ground.position.y = 0
+ground.receiveShadow = true
+scene.add(ground)
+
+// ============ Rocket (primitive fallback + real model swap) ============
+// Group holds whatever rocket we render. If rocket.glb loads, we replace the
+// contents with the model. Otherwise we keep the primitive fallback below —
+// which means the scene is never blank while you're sourcing the asset.
+const rocket = new THREE.Group()
+scene.add(rocket)
+
+function buildFallbackRocket() {
+  const g = new THREE.Group()
+
+  // Body — cream cylinder
+  const bodyMat = new THREE.MeshStandardMaterial({ color: '#f5f1e6', roughness: 0.55, metalness: 0.05 })
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.6, 32), bodyMat)
+  body.position.y = 0.8 + 0.2
+  body.castShadow = true
+  g.add(body)
+
+  // Nose cone
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.6, 32), bodyMat)
+  nose.position.y = 1.6 + 0.5
+  nose.castShadow = true
+  g.add(nose)
+
+  // Red accent stripe (a thin torus around the body)
+  const stripeMat = new THREE.MeshStandardMaterial({ color: '#e85d3a', roughness: 0.45 })
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.325, 0.045, 16, 64), stripeMat)
+  stripe.position.y = 1.4
+  stripe.rotation.x = Math.PI / 2
+  stripe.castShadow = true
+  g.add(stripe)
+
+  // Window (dark porthole)
+  const winMat = new THREE.MeshStandardMaterial({ color: '#1e2a3a', roughness: 0.3, metalness: 0.3 })
+  const win = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2), winMat)
+  win.position.set(0, 1.85, 0.32)
+  win.rotation.x = -Math.PI / 2
+  win.castShadow = true
+  g.add(win)
+
+  // Fins (3, radial)
+  const finMat = new THREE.MeshStandardMaterial({ color: '#c94a2f', roughness: 0.5 })
+  const finShape = new THREE.Shape()
+  finShape.moveTo(0, 0)
+  finShape.lineTo(0.42, -0.15)
+  finShape.lineTo(0.42, 0)
+  finShape.lineTo(0.06, 0.55)
+  finShape.lineTo(0, 0.55)
+  finShape.lineTo(0, 0)
+  const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.03, bevelEnabled: false })
+  for (let i = 0; i < 3; i++) {
+    const fin = new THREE.Mesh(finGeo, finMat)
+    fin.position.y = 0.2
+    fin.rotation.y = (i / 3) * Math.PI * 2
+    fin.translateZ(0.32)
+    fin.castShadow = true
+    g.add(fin)
+  }
+
+  // Engine nozzle (bottom)
+  const nozzleMat = new THREE.MeshStandardMaterial({ color: '#2b2b2b', roughness: 0.7, metalness: 0.2 })
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.32, 0.2, 32), nozzleMat)
+  nozzle.position.y = 0.1
+  nozzle.castShadow = true
+  g.add(nozzle)
+
+  return g
+}
+
+const fallback = buildFallbackRocket()
+rocket.add(fallback)
+hud.textContent = 'Placeholder rocket'
+
+// Try to load the real rocket. Drop your Kenney rocket at ./rocket.glb.
+new GLTFLoader().load(
+  './rocket.glb',
+  (gltf) => {
+    rocket.remove(fallback)
+    const model = gltf.scene
+    // Auto-fit: scale to ~2 units tall, sit on the ground plane.
+    const box = new THREE.Box3().setFromObject(model)
+    const size = new THREE.Vector3(); box.getSize(size)
+    const scale = 2.2 / Math.max(size.x, size.y, size.z)
+    model.scale.setScalar(scale)
+    const box2 = new THREE.Box3().setFromObject(model)
+    model.position.y -= box2.min.y
+    model.traverse((n) => {
+      if (n.isMesh) { n.castShadow = true; n.receiveShadow = true }
+    })
+    rocket.add(model)
+    hud.textContent = 'three.js · GLTF'
+    hud.classList.add('live')
+  },
+  undefined,
+  () => {
+    // No rocket.glb yet — leave the primitive fallback in place.
+    hud.textContent = 'Placeholder · drop rocket.glb'
+  }
+)
+
+// ============ Camera controls ============
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+controls.dampingFactor = 0.08
+controls.enablePan = false
+controls.enableZoom = false          // matches Yadong's Yadong-style locked frame
+controls.autoRotate = true
+controls.autoRotateSpeed = 0.45
+controls.minPolarAngle = Math.PI * 0.15
+controls.maxPolarAngle = Math.PI * 0.55
+controls.target.set(0, 1.1, 0)
+
+// Kill auto-rotate the moment the user interacts.
+let hasInteracted = false
+function markInteracted() {
+  if (hasInteracted) return
+  hasInteracted = true
+  controls.autoRotate = false
+  statusEl.classList.add('fade')
+}
+renderer.domElement.addEventListener('pointerdown', markInteracted, { once: true })
+renderer.domElement.addEventListener('wheel', markInteracted, { once: true, passive: true })
+
+// ============ Render loop ============
+function tick() {
+  controls.update()
+  renderer.render(scene, camera)
+  requestAnimationFrame(tick)
+}
+tick()
+
+// ============ Resize ============
+addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(window.innerWidth, window.innerHeight)
+})
+</script>
+
+</body>
+</html>

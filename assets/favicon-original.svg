@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="218px" height="218px" viewBox="0 0 218 218" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Group</title>
+    <defs>
+        <filter x="0.0%" y="0.0%" width="100.0%" height="100.0%" filterUnits="objectBoundingBox" id="filter-1">
+            <feGaussianBlur stdDeviation="10" in="SourceGraphic"></feGaussianBlur>
+        </filter>
+        <circle id="path-2" cx="109" cy="109" r="109"></circle>
+        <radialGradient cx="50%" cy="44.4229101%" fx="50%" fy="44.4229101%" r="58.4453525%" gradientTransform="translate(0.5, 0.4442), scale(0.7523, 1), rotate(128.1674), translate(-0.5, -0.4442)" id="radialGradient-4">
+            <stop stop-color="#E4E4E4" offset="0%"></stop>
+            <stop stop-color="#000000" stop-opacity="0.815286276" offset="100%"></stop>
+        </radialGradient>
+        <linearGradient x1="1.42941214e-13%" y1="58.5244939%" x2="96.9360841%" y2="63.2841591%" id="linearGradient-5">
+            <stop stop-color="#CAC9C9" offset="0%"></stop>
+            <stop stop-color="#9A9898" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-6">
+            <stop stop-color="#666666" stop-opacity="0.815286276" offset="0%"></stop>
+            <stop stop-color="#000000" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="-33.8007144%" x2="50%" y2="100%" id="linearGradient-7">
+            <stop stop-color="#9D9D9D" offset="0%"></stop>
+            <stop stop-color="#858585" stop-opacity="0" offset="100%"></stop>
+        </linearGradient>
+        <filter x="-4.4%" y="-14.0%" width="108.9%" height="128.0%" filterUnits="objectBoundingBox" id="filter-8">
+            <feGaussianBlur stdDeviation="2" in="SourceGraphic"></feGaussianBlur>
+        </filter>
+    </defs>
+    <g id="Marketing-Images" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="shiny-button-copy-4" filter="url(#filter-1)">
+            <g id="Group-16">
+                <mask id="mask-3" fill="white">
+                    <use xlink:href="#path-2"></use>
+                </mask>
+                <use id="mask" fill="#D8D8D8" xlink:href="#path-2"></use>
+                <ellipse id="Oval-Copy-20" stroke="url(#linearGradient-5)" fill="url(#radialGradient-4)" mask="url(#mask-3)" cx="109" cy="82" rx="108.5" ry="81.5"></ellipse>
+                <circle id="Oval" fill="url(#linearGradient-6)" mask="url(#mask-3)" cx="109" cy="109" r="109"></circle>
+            </g>
+            <path d="M109.563464,72 C146.842684,72 176.349497,80.000069 176.349497,68.9543741 C176.349497,57.9086791 146.842684,32 109.563464,32 C72.2842431,32 41.349497,57.9086791 41.349497,68.9543741 C41.349497,80.000069 72.2842431,72 109.563464,72 Z" id="Oval" fill="url(#linearGradient-7)" filter="url(#filter-8)"></path>
+        </g>
+    </g>
+</svg>
